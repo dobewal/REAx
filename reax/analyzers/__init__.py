@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from reax.core.target import APK, DEX, ELF, JAR, MACHO, PE
+from reax.core.target import APK, DEX, ELF, JAR, JS, MACHO, PE, WEB
 
 _REGISTRY: dict[str, Callable[[str], dict[str, Any]]] = {}
 
@@ -27,6 +27,14 @@ def supported() -> list[str]:
 # built-in analyzers
 from reax.analyzers.apk import analyze_apk  # noqa: E402
 from reax.analyzers.elf import analyze_elf  # noqa: E402
+from reax.analyzers.js import analyze_js  # noqa: E402
+from reax.analyzers.macho import analyze_macho  # noqa: E402
+from reax.analyzers.pe import analyze_pe  # noqa: E402
+from reax.analyzers.web import analyze_web  # noqa: E402
 
 register(APK)(analyze_apk)
 register(ELF)(analyze_elf)
+register(JS)(analyze_js)
+register(MACHO)(analyze_macho)
+register(PE)(analyze_pe)
+register(WEB)(analyze_web)

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "reax"
-version = "0.4.0"
+version = "0.7.0"
 description = "Reverse Engineer Anything — improved. One command, zero setup, answers instead of primitives."
 readme = "README.md"
 license = { text = "MIT" }
@@ -30,12 +30,23 @@ keywords = [
     "decompiler",
     "ghidra",
     "frida",
+    "pe-analysis",
+    "macho-analysis",
+    "windows-security",
+    "macos-security",
+    "dotnet",
+    "website-security",
+    "phishing-detection",
+    "javascript-security",
+    "npm-security",
+    "supply-chain-security",
 ]
 dependencies = [
     "typer>=0.9",
     "rich>=13",
     "androguard>=4.0",
     "pyelftools>=0.30",
+    "pefile>=2024.8.26",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",

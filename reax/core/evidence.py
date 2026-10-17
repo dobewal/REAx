@@ -10,8 +10,16 @@ from typing import Any
 
 
 def sha256_of(path: str | Path, chunk: int = 1 << 20) -> str:
+    p = Path(path)
     h = hashlib.sha256()
-    with open(path, "rb") as f:
+    if p.is_dir():
+        # manifest hash: stable fingerprint of the directory tree
+        for f in sorted(p.rglob("*")):
+            if f.is_file():
+                h.update(str(f.relative_to(p)).encode())
+                h.update(str(f.stat().st_size).encode())
+        return h.hexdigest()
+    with open(p, "rb") as f:
         for b in iter(lambda: f.read(chunk), b""):
             h.update(b)
     return h.hexdigest()
@@ -19,14 +27,20 @@ def sha256_of(path: str | Path, chunk: int = 1 << 20) -> str:
 
 def new_evidence(target_kind: str, target_path: str) -> dict[str, Any]:
     p = Path(target_path)
+    is_url = target_path.startswith(("http://", "https://"))
+    if is_url:
+        name, size_bytes = target_path, 0
+        sha = hashlib.sha256(target_path.encode()).hexdigest()
+    else:
+        name, size_bytes, sha = p.name, p.stat().st_size, sha256_of(p)
     return {
         "reax_version": __import__("reax").__version__,
         "target": {
             "kind": target_kind,
-            "path": str(p),
-            "name": p.name,
-            "size_bytes": p.stat().st_size,
-            "sha256": sha256_of(p),
+            "path": str(target_path),
+            "name": name,
+            "size_bytes": size_bytes,
+            "sha256": sha,
         },
         "analyzed_at": datetime.now(timezone.utc).isoformat(),
         "sections": {},

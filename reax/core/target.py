@@ -11,11 +11,21 @@ MACHO = "macho"
 PE = "pe"
 DEX = "dex"
 JAR = "jar"
+JS = "js"
+WEB = "web"
 UNKNOWN = "unknown"
 
 
 def detect(path: str | Path) -> str:
     p = Path(path)
+    if p.is_dir():
+        has_pkg = (p / "package.json").is_file()
+        has_js = any(f.suffix == ".js" for f in p.iterdir() if f.is_file())
+        return JS if (has_pkg or has_js) else UNKNOWN
+    if p.suffix == ".js":
+        return JS
+    if p.name.endswith((".tgz", ".tar.gz")):
+        return JS
     data = p.read_bytes()[:8]
     if data[:2] == b"PK":
         try:

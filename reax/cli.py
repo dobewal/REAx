@@ -17,7 +17,10 @@ console = Console()
 
 
 def _analyze(path: str) -> dict:
-    kind = targetmod.detect(path)
+    if path.startswith(("http://", "https://")):
+        kind = "web"
+    else:
+        kind = targetmod.detect(path)
     from reax.analyzers import get, supported
     fn = get(kind)
     if fn is None:
@@ -32,7 +35,7 @@ def _analyze(path: str) -> dict:
 
 @app.command()
 def analyze(
-    path: str = typer.Argument(..., help="APK or ELF binary to analyze"),
+    path: str = typer.Argument(..., help="APK, ELF, JS file/package, or URL target to analyze"),
     out: str = typer.Option("reports", "--out", "-o", help="output directory"),
     fmt: str = typer.Option("all", "--format", "-f", help="json|md|html|all"),
     json_out: bool = typer.Option(False, "--json", help="also print evidence JSON path"),

@@ -69,7 +69,11 @@ reax doctor
 | 📦 **Hidden payloads** | native `.so` files enumerated from the real package (with sizes), big blobs in `assets/` flagged |
 | 🔍 **Version diff** | new permissions, new trackers, new libs, risk delta between two APKs |
 | 🔬 **Decompile view** | the actual Java code behind every flagged API call — proof, not hints |
+| 📜 **JS / npm analysis** | dangerous APIs, exfiltration indicators, install-hook supply-chain checks, obfuscation signals — for .js files, package dirs, and tarballs |
+| 🌐 **Website analysis** | scripts, trackers, phishing signals, TLS — one URL in, verdict out |
 | ⚙️ **ELF X-ray** | suspicious imports, RWX segments, section entropy, packer signatures for native binaries |
+| 🪟 **PE analysis** | dangerous WinAPI imports, RWX sections, packer signatures, TLS callbacks, .NET detection |
+| 🍎 **Mach-O analysis** | suspicious symbols, encrypted binaries, embedded dylibs, anti-debug markers |
 | 📄 **Shareable report** | one self-contained HTML file — send it to anyone, no tool needed |
 
 ## REAX vs REA

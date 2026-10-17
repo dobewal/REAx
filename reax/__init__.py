@@ -6,5 +6,5 @@ Inspired by REA (https://github.com/morluto/rea) by morluto, MIT licensed.
 REAX is an independent implementation — see LICENSE and NOTICE for attribution.
 """
 
-__version__ = "0.4.0"
+__version__ = "0.7.0"
 __all__ = ["__version__"]
