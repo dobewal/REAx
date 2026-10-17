@@ -29,6 +29,24 @@ This software is provided "AS IS", without warranty of any kind (see LICENSE).
 By using REAX you agree that you use it at your own risk, for lawful and
 authorized purposes only.
 
+## Dual-use honesty
+
+Reverse engineering is dual-use: the same analysis that helps a developer find
+a vulnerability in their own app could help someone else find one in yours.
+REAX is published openly because **defenders need the same visibility attackers
+already have** — hiding analysis tools only disarms the honest side.
+
+That said, REAX is deliberately **observational only**:
+
+- It performs **static analysis** — it reads files, it never executes them.
+- It **shows what code does**; it does not write exploits, bypass protections,
+  or automate attacks.
+- We do not provide instructions, assistance, or features whose purpose is to
+  facilitate wrongdoing. Feature requests in that direction will be declined.
+
+If you are unsure whether your use is authorized, it isn't — get written
+permission first.
+
 ## If you find a vulnerability
 
 Report it to the app's developer or vendor first, privately, and give them a

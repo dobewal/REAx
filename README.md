@@ -68,6 +68,7 @@ reax doctor
 | 🌐 **Network indicators** | URLs and IPs pulled from DEX strings |
 | 📦 **Hidden payloads** | native `.so` files enumerated from the real package (with sizes), big blobs in `assets/` flagged |
 | 🔍 **Version diff** | new permissions, new trackers, new libs, risk delta between two APKs |
+| 🔬 **Decompile view** | the actual Java code behind every flagged API call — proof, not hints |
 | ⚙️ **ELF X-ray** | suspicious imports, RWX segments, section entropy, packer signatures for native binaries |
 | 📄 **Shareable report** | one self-contained HTML file — send it to anyone, no tool needed |
 
@@ -123,6 +124,13 @@ REAX is an independent implementation inspired by
 [REA](https://github.com/morluto/rea) © 2026 morluto (MIT).
 APK parsing via [Androguard](https://github.com/androguard/androguard).
 See [NOTICE](NOTICE) for full attribution.
+
+## Safety
+
+REAX is **observational only**: static, read-only analysis — it never executes
+targets, patches protections, or generates exploits. Educational and authorized
+research use only. Read [DISCLAIMER.md](DISCLAIMER.md) and
+[docs/safety-boundaries.md](docs/safety-boundaries.md).
 
 ## License
 

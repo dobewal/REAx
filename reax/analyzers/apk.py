@@ -248,7 +248,8 @@ def analyze_apk(path: str) -> dict[str, Any]:
 
     # ---- dex: classes, trackers, suspicious APIs, strings ----
     class_names: set[str] = set()
-    api_hits: dict[str, int] = {}
+    api_hits: dict[str, dict] = {}
+    hit_methods: dict[str, list] = {}  # api key -> [(dex, method)] for decompile view
     urls: set[str] = set()
     ips: set[str] = set()
     dex_count = 0
@@ -284,6 +285,10 @@ def analyze_apk(path: str) -> dict[str, Any]:
                                     key = f"{prefix} :: {what}"
                                     info = api_hits.setdefault(key, {"hits": 0, "sev": sev})
                                     info["hits"] += 1
+                                    # remember defining methods for the decompile view (cap 3/API)
+                                    lst = hit_methods.setdefault(key, [])
+                                    if len(lst) < 3 and all(m is not method for _, m in lst):
+                                        lst.append((dex, method))
                                     break
                 except Exception:
                     continue
@@ -325,6 +330,54 @@ def analyze_apk(path: str) -> dict[str, Any]:
             for k, v in sorted(api_hits.items(), key=lambda kv: (-kv[1]["sev"], -kv[1]["hits"]))
         ],
     }
+
+    # ---- decompile view: show the actual code behind suspicious API hits ----
+    # Strictly static and read-only: androguard never executes the target.
+    # Only methods containing severity>=2 hits are decompiled, max 8 snippets.
+    ev["decompiled"] = {"count": 0, "items": []}
+    decompile_targets = [
+        (k, dex_obj, method)
+        for k, pairs in hit_methods.items()
+        if api_hits[k]["sev"] >= 2
+        for dex_obj, method in pairs
+    ][:8]
+    if decompile_targets:
+        try:
+            from androguard.core.analysis.analysis import Analysis
+            from androguard.decompiler import decompile as dad_decompile
+
+            analyses: dict[int, Analysis] = {}
+            for key, dex_obj, method in decompile_targets:
+                try:
+                    did = id(dex_obj)
+                    if did not in analyses:
+                        ax = Analysis()
+                        ax.add(dex_obj)
+                        analyses[did] = ax
+                    mx = analyses[did].get_method_analysis(method)
+                    if mx is None:
+                        continue
+                    # NOTE: DecompilerDAD.get_source_method is broken in androguard
+                    # 4.x (passes MethodAnalysis where EncodedMethod is expected);
+                    # DvMethod directly is the working path.
+                    z = dad_decompile.DvMethod(mx)
+                    z.process()
+                    src = z.get_source()
+                    if not src or not src.strip():
+                        continue
+                    lines = src.split("\n")
+                    if len(lines) > 60:
+                        src = "\n".join(lines[:60]) + f"\n// ... truncated ({len(lines)} lines total)"
+                    label = f"{method.get_class_name()}->{method.get_name()}{method.get_descriptor()}"
+                    code = ("// REAX: decompiled for educational analysis only — "
+                            "see DISCLAIMER.md\n" + src)
+                    ev["decompiled"]["items"].append(
+                        {"api": key, "method": label, "code": code})
+                except Exception:
+                    continue
+        except Exception:
+            pass
+    ev["decompiled"]["count"] = len(ev["decompiled"]["items"])
     ev["network_indicators"] = {
         "urls": sorted(urls)[:100],
         "url_count": len(urls),

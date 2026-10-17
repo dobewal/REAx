@@ -179,6 +179,20 @@ def render_apk(ev: dict[str, Any]) -> str:
         for a in apis["items"][:20]:
             A(f"- `{a['api']}` — {a['hits']} call sites")
         A("")
+    decomp = s.get("decompiled", {})
+    if decomp.get("items"):
+        A("## Decompiled evidence")
+        A("")
+        A("_The actual code behind the flagged API calls — read-only static analysis, for education only._")
+        A("")
+        for d in decomp["items"]:
+            A(f"### `{d['method']}`")
+            A(f"_triggered by `{d['api']}`_")
+            A("")
+            A("```java")
+            A(d["code"])
+            A("```")
+            A("")
     A("## Network indicators")
     A("")
     A(f"- URLs in strings: {net.get('url_count')} · IPs: {net.get('ip_count')}")

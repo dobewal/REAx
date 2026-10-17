@@ -160,6 +160,13 @@ def render_apk(ev: dict[str, Any]) -> str:
     ) or "<tr><td colspan=2>None.</td></tr>"
     url_list = "".join(f"<li><code>{_e(u)}</code></li>" for u in (net.get("urls") or [])[:20])
     ip_list = "".join(f"<li><code>{_e(i)}</code></li>" for i in (net.get("ips") or [])[:20])
+    decomp = s.get("decompiled", {})
+    decomp_items = "".join(
+        f"<details style='margin:6px 0'><summary><code>{_e(d['method'])}</code> "
+        f"<span style='color:var(--dim);font-size:12px'>— triggered by {_e(d['api'])}</span></summary>"
+        f"<pre style='background:#0d1117;padding:12px;border-radius:8px;overflow-x:auto;font-size:12.5px'><code>{_e(d['code'])}</code></pre></details>"
+        for d in (decomp.get("items") or [])
+    )
 
     body = f"""
 <div class="wrap">
@@ -179,6 +186,7 @@ def render_apk(ev: dict[str, Any]) -> str:
 {_details(f"Permissions ({perms.get('count',0)})", f"<table><tr><th>Permission</th><th>Risk</th><th>Why</th></tr>{perm_rows}</table>", True)}
 {_details(f"Trackers ({trackers.get('count',0)})", f"<ul>{tracker_list}</ul>")}
 {_details(f"Suspicious API usage ({apis.get('count',0)})", f"<table><tr><th>API</th><th>Call sites</th></tr>{api_rows}</table>")}
+{_details(f"Decompiled evidence ({decomp.get('count',0)})", decomp_items or "None — no severity≥2 API hits to decompile.")}
 {_details(f"Network indicators (URLs {net.get('url_count',0)} · IPs {net.get('ip_count',0)})", f"<ul>{url_list}{ip_list}</ul>")}
 {_details(f"Native libraries ({libs.get('count',0)})", f"<ul>{lib_list}</ul>")}
 {_details("Components", f"<ul><li>Activities: {comp.get('activities')}</li><li>Services: {comp.get('services')}</li><li>Receivers: {comp.get('receivers')}</li><li>Providers: {comp.get('providers')}</li></ul>")}
