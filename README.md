@@ -61,7 +61,7 @@ reax doctor
 
 | | |
 |---|---|
-| 🎯 **Risk verdict** | LOW / MEDIUM / HIGH / CRITICAL score with the exact findings behind it |
+| 🎯 **Risk verdict** | LOW / MEDIUM / HIGH / CRITICAL score with the exact findings behind it — plus an auditable 4-bucket score breakdown ([how scoring works](docs/scoring.md)) |
 | 🔑 **Permissions, decoded** | every risky permission with severity and a plain-English "why it matters" |
 | 🛰️ **Tracker detection** | 50+ known tracker SDKs (AdMob, AppsFlyer, Facebook, …) |
 | 🧬 **Suspicious APIs** | `DexClassLoader`, `SmsManager`, `Runtime.exec`, … with call-site counts |

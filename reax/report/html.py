@@ -45,6 +45,22 @@ def _details(title: str, body: str, open_: bool = False) -> str:
     return f"<details{' open' if open_ else ''}><summary>{_e(title)}</summary><div class='sum-body'>{body}</div></details>"
 
 
+def _breakdown_html(risk: dict[str, Any]) -> str:
+    bd = risk.get("breakdown")
+    if not bd:
+        return ""
+    rows = "".join(
+        f"<div style='margin:8px 0'><div style='display:flex;justify-content:space-between'>"
+        f"<span style='color:var(--dim);font-size:12px;text-transform:uppercase'>{_e(k)}</span>"
+        f"<span style='font-size:12px'>{v}/25</span></div>"
+        f"<div style='background:#0d1117;border-radius:6px;height:8px;margin-top:4px'>"
+        f"<div style='width:{min(v * 4, 100)}%;height:8px;border-radius:6px;background:var(--blue)'></div>"
+        f"</div></div>"
+        for k, v in bd.items()
+    )
+    return f"<div class='card'><div class='k'>Score breakdown — where the points came from</div>{rows}</div>"
+
+
 def render(ev: dict[str, Any]) -> str:
     if ev["target"]["kind"] == "elf":
         return render_elf(ev)
@@ -91,6 +107,7 @@ def render_elf(ev: dict[str, Any]) -> str:
 <div class="sub">REAX ELF report · {_e(ev.get('analyzed_at',''))} · SHA256 <code>{_e(t.get('sha256','')[:24])}…</code></div>
 <div class="verdict {grade}">{GRADE_EMOJI.get(grade,'⚪')} {grade.upper()} — risk score {risk.get('score',0)}/100</div>
 <div class="card"><div class="k">Key findings</div><ul>{findings}</ul></div>
+{_breakdown_html(risk)}
 <div class="grid">
 <div class="card"><div class="k">Arch</div><div class="v" style="font-size:14px">{_e(ident.get('arch'))} {_e(ident.get('bits'))}-bit</div></div>
 <div class="card"><div class="k">Type</div><div class="v" style="font-size:14px">{_e(ident.get('type'))}</div></div>
@@ -150,6 +167,7 @@ def render_apk(ev: dict[str, Any]) -> str:
 <div class="sub">REAX report · {_e(ev.get('analyzed_at',''))} · SHA256 <code>{_e(t.get('sha256','')[:24])}…</code></div>
 <div class="verdict {grade}">{GRADE_EMOJI.get(grade,'⚪')} {grade.upper()} — risk score {risk.get('score',0)}/100</div>
 <div class="card"><div class="k">Key findings</div><ul>{findings}</ul></div>
+{_breakdown_html(risk)}
 <div class="grid">
 <div class="card"><div class="k">Package</div><div class="v" style="font-size:14px">{_e(ident.get('package'))}</div></div>
 <div class="card"><div class="k">Version</div><div class="v" style="font-size:14px">{_e(ident.get('version_name'))}</div></div>

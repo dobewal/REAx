@@ -13,6 +13,18 @@ def _sev_emoji(sev: int) -> str:
     return {0: "·", 1: "🟡", 2: "🟠", 3: "🔴"}.get(sev, "·")
 
 
+def _breakdown_md(risk: dict[str, Any]) -> list[str]:
+    bd = risk.get("breakdown")
+    if not bd:
+        return []
+    L = ["## Score breakdown", ""]
+    for k, v in bd.items():
+        bar = "█" * (v // 5) + "░" * (5 - v // 5)
+        L.append(f"- {k.capitalize():<12} {bar} {v}/25")
+    L.append("")
+    return L
+
+
 def render(ev: dict[str, Any]) -> str:
     if ev["target"]["kind"] == "elf":
         return render_elf(ev)
@@ -39,6 +51,7 @@ def render_elf(ev: dict[str, Any]) -> str:
     for f in risk.get("findings", []):
         A(f"- { {'high': '🔴', 'medium': '🟡', 'low': '🟢'}.get(f.get('level'), '·') } {f.get('text')}")
     A("")
+    L.extend(_breakdown_md(risk))
     A("## Binary identity")
     A("")
     A(f"- Architecture: {ident.get('arch')} ({ident.get('bits')}-bit, {ident.get('endian')}-endian)")
@@ -112,6 +125,7 @@ def render_apk(ev: dict[str, Any]) -> str:
     for f in risk.get("findings", []):
         A(f"- { {'high': '🔴', 'medium': '🟡', 'low': '🟢'}.get(f.get('level'), '·') } {f.get('text')}")
     A("")
+    L.extend(_breakdown_md(risk))
     A("## Identity")
     A("")
     A(f"- Package: `{ident.get('package')}`")

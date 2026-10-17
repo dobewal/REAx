@@ -196,25 +196,55 @@ def analyze_elf(path: str) -> dict[str, Any]:
         "ips": sorted(ips)[:50], "ip_count": len(ips),
     }
 
-    # ---- risk ----
-    score = 0
+    # ---- risk: 4 audited buckets x 25 = 100 (see docs/scoring.md) ----
     findings: list[dict[str, Any]] = []
+    breakdown: dict[str, int] = {}
     susp = [r for r in ev["imports"]["items"] if r["severity"] > 0]
-    score += min(sum(r["severity"] * 4 for r in susp), 40)
+
+    STEALTH_IMPS = {"ptrace": 12, "dlopen": 6, "dlsym": 6}
+    NETWORK_IMPS = {"socket", "connect", "gethostbyname", "getaddrinfo"}
+
+    def _base(name: str) -> str:
+        return name.split("@")[0]
+
+    # 1. code: dangerous things the binary can do
+    code_pts = sum(r["severity"] * 3.5 for r in susp
+                   if _base(r["function"]) not in STEALTH_IMPS
+                   and _base(r["function"]) not in NETWORK_IMPS)
+    breakdown["code"] = min(25, int(code_pts))
+
+    # 2. stealth: hiding from analysis
+    stealth = sum(STEALTH_IMPS.get(_base(r["function"]), 0) for r in susp)
+    if ev["packers"]:
+        stealth += 10
+        findings.append({"level": "medium",
+                         "text": f"Packer signature detected: {', '.join(ev['packers'])}"})
+    breakdown["stealth"] = min(25, stealth)
+
+    # 3. memory: executable-memory tricks
+    memory = 0
+    if ev["segments"]["rwx_count"]:
+        memory += 15
+        findings.append({"level": "high",
+                         "text": f"{ev['segments']['rwx_count']} RWX memory segment(s) — code can be written and executed at runtime"})
+    if high_entropy:
+        memory += 8
+        findings.append({"level": "medium",
+                         "text": f"High-entropy sections (possibly packed/encrypted): {', '.join(high_entropy[:3])}"})
+    breakdown["memory"] = min(25, memory)
+
+    # 4. network: talking to the outside world
+    net_pts = sum(r["severity"] * 4 for r in susp if _base(r["function"]) in NETWORK_IMPS)
+    ni = ev["network_indicators"]
+    net_pts += min(8, ni["url_count"] + ni["ip_count"])
+    breakdown["network"] = min(25, int(net_pts))
+
     for r in susp:
         if r["severity"] >= 2:
             findings.append({"level": "high" if r["severity"] >= 3 else "medium",
                              "text": f"Suspicious import: {r['function']} — {r['why']}"})
-    if ev["segments"]["rwx_count"]:
-        score += 15
-        findings.append({"level": "high", "text": f"{ev['segments']['rwx_count']} RWX memory segment(s) — code can be written and executed at runtime"})
-    if ev["packers"]:
-        score += 10
-        findings.append({"level": "medium", "text": f"Packer signature detected: {', '.join(ev['packers'])}"})
-    if high_entropy:
-        score += 8
-        findings.append({"level": "medium", "text": f"High-entropy sections (possibly packed/encrypted): {', '.join(high_entropy[:3])}"})
-    score = min(score, 100)
+
+    score = sum(breakdown.values())
     grade = "low" if score < 25 else "medium" if score < 50 else "high" if score < 75 else "critical"
-    ev["risk"] = {"score": score, "grade": grade, "findings": findings}
+    ev["risk"] = {"score": score, "grade": grade, "findings": findings, "breakdown": breakdown}
     return ev

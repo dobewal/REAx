@@ -45,6 +45,24 @@ PERMISSION_RISK: dict[str, tuple[int, str]] = {
     "android.permission.SCHEDULE_EXACT_ALARM": (1, "exact alarms"),
 }
 
+# tracker name -> category; categories carry different weights (ads track you the most)
+TRACKER_CATEGORY: dict[str, str] = {
+    "Google AdMob": "ads", "Facebook Ads": "ads", "MoPub": "ads",
+    "AppLovin": "ads", "Unity Ads": "ads", "ironSource": "ads",
+    "Chartboost": "ads", "Vungle / Liftoff": "ads", "InMobi": "ads",
+    "StartApp": "ads", "AdColony": "ads", "AppNext": "ads",
+    "RevMob": "ads", "Smaato": "ads", "Criteo": "ads", "Ogury": "ads",
+    "Huawei Ads": "ads", "ByteDance / TikTok SDK": "ads",
+    "Fyber": "ads",
+    "Google Analytics": "analytics", "Firebase Analytics": "analytics",
+    "Flurry": "analytics", "Amplitude": "analytics", "Mixpanel": "analytics",
+    "Segment": "analytics", "AppsFlyer": "analytics", "Adjust": "analytics",
+    "Kochava": "analytics", "Tune": "analytics", "Singular": "analytics",
+    "Leanplum / CleverTap": "analytics", "Localytics": "analytics",
+    "Yandex Metrica": "analytics", "Facebook App Events": "analytics",
+}
+CATEGORY_POINTS = {"ads": 3, "analytics": 2, "other": 1}
+
 # tracker SDK package prefix -> tracker name (subset of the Exodus Privacy list)
 TRACKERS: dict[str, str] = {
     "com/google/android/gms/ads": "Google AdMob",
@@ -132,6 +150,18 @@ def _short(perm: str) -> str:
     return perm.split(".")[-1]
 
 
+def _is_debug_cert(apk) -> bool:
+    """True if the APK is signed with the well-known Android debug certificate."""
+    try:
+        for cert in apk.get_certificates() or []:
+            subj = cert.subject.native
+            if subj.get("common_name") == "Android Debug":
+                return True
+    except Exception:
+        pass
+    return False
+
+
 def analyze_apk(path: str) -> dict[str, Any]:
     from androguard.core.apk import APK
 
@@ -160,6 +190,8 @@ def analyze_apk(path: str) -> dict[str, Any]:
         "max_sdk": apk.get_max_sdk_version(),
         "debuggable": bool(apk.get_attribute_value("debuggable", "application")),
         "allow_backup": apk.get_attribute_value("allowBackup", "application"),
+        "uses_cleartext": apk.get_attribute_value("usesCleartextTraffic", "application") == "true",
+        "debug_cert": _is_debug_cert(apk),
         "main_activity": apk.get_main_activity(),
     }
 
@@ -300,36 +332,59 @@ def analyze_apk(path: str) -> dict[str, Any]:
         "ip_count": len(ips),
     }
 
-    # ---- risk verdict ----
-    score = 0
+    # ---- risk verdict: 4 audited buckets x 25 = 100 (see docs/scoring.md) ----
     findings: list[dict[str, Any]] = []
-    score += min(risk_points * 2, 40)
-    if risk_points >= 15:
-        findings.append({"level": "high", "text": f"{len([p for p in perm_rows if p['severity'] >= 2])} high-risk permissions requested"})
-    score += min(len(found_trackers) * 4, 20)
-    if found_trackers:
-        findings.append({"level": "medium", "text": f"{len(found_trackers)} tracker SDKs embedded"})
-    api_score = sum(info["sev"] * 3 for info in api_hits.values())
-    score += min(api_score, 30)
+    breakdown: dict[str, int] = {}
+
+    # 1. permissions: what the app is allowed to do
+    breakdown["permissions"] = min(25, int(risk_points * 1.5))
+    n_risky = len([p for p in perm_rows if p["severity"] >= 2])
+    if n_risky:
+        findings.append({"level": "high" if n_risky >= 3 else "medium",
+                         "text": f"{n_risky} high-risk permission(s) requested"})
+
+    # 2. code: what the code actually does
+    breakdown["code"] = min(25, int(sum(info["sev"] * 2.5 for info in api_hits.values())))
     for k, info in sorted(api_hits.items(), key=lambda kv: -kv[1]["sev"]):
         if info["sev"] >= 2:
             findings.append({"level": "high" if info["sev"] >= 3 else "medium",
                              "text": f"Suspicious API in use: {k} ({info['hits']} call sites)"})
-    # hidden native payloads in assets/
+
+    # 3. privacy: who the app talks about you to
+    tracker_points = sum(
+        CATEGORY_POINTS.get(TRACKER_CATEGORY.get(t, "other"), 1)
+        for t in found_trackers
+    )
+    privacy = tracker_points
+    if ev["identity"]["uses_cleartext"]:
+        privacy += 5
+        findings.append({"level": "medium", "text": "App allows cleartext (unencrypted) network traffic"})
+    breakdown["privacy"] = min(25, privacy)
+    if found_trackers:
+        findings.append({"level": "medium",
+                         "text": f"{len(found_trackers)} tracker SDK(s) embedded ({tracker_points} pts)"})
+
+    # 4. packaging: can you trust this file at all
+    packaging = 0
+    if not ev["signing"]["signed"]:
+        packaging += 12
+        findings.append({"level": "high", "text": "APK is not signed"})
+    elif ev["identity"]["debug_cert"]:
+        packaging += 12
+        findings.append({"level": "high", "text": "Signed with the Android DEBUG certificate — never shipped by legitimate developers"})
+    if ev["identity"]["debuggable"]:
+        packaging += 5
+        findings.append({"level": "medium", "text": "APK is debuggable"})
     for f in ev["bundled_files"]["items"]:
         if f["file"].startswith("assets/") and f["file"].endswith(".so") and f["size_mb"] > 10:
-            score += 18
+            packaging += 10
             findings.append({"level": "high",
                              "text": f"{f['size_mb']} MB native payload bundled in assets/ ({f['file']}) — classic hidden-payload pattern"})
             break
-    if ev["identity"]["debuggable"]:
-        score += 8
-        findings.append({"level": "medium", "text": "APK is debuggable"})
-    if not ev["signing"]["signed"]:
-        score += 10
-        findings.append({"level": "high", "text": "APK is not signed"})
-    score = min(score, 100)
+    breakdown["packaging"] = min(25, packaging)
+
+    score = sum(breakdown.values())
     grade = "low" if score < 25 else "medium" if score < 50 else "high" if score < 75 else "critical"
-    ev["risk"] = {"score": score, "grade": grade, "findings": findings}
+    ev["risk"] = {"score": score, "grade": grade, "findings": findings, "breakdown": breakdown}
 
     return ev

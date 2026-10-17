@@ -62,6 +62,14 @@ def analyze(
     console.print(f"\n{emoji} [bold]{risk['grade'].upper()}[/bold] — risk score [bold]{risk['score']}/100[/bold]")
     for f in risk["findings"]:
         console.print(f"  • {f['text']}")
+    if risk.get("breakdown"):
+        btable = Table(show_header=False, box=None, padding=(0, 2))
+        for k, v in risk["breakdown"].items():
+            bar = "█" * (v // 5) + "░" * (5 - v // 5)
+            btable.add_row(k.capitalize(), f"[blue]{bar}[/blue]", f"{v}/25")
+        console.print()
+        console.print("[dim]Score breakdown:[/dim]")
+        console.print(btable)
     console.print()
     for w in written:
         console.print(f"  [green]✓[/green] {w}")
