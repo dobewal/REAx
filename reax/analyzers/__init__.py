@@ -26,5 +26,7 @@ def supported() -> list[str]:
 
 # built-in analyzers
 from reax.analyzers.apk import analyze_apk  # noqa: E402
+from reax.analyzers.elf import analyze_elf  # noqa: E402
 
 register(APK)(analyze_apk)
+register(ELF)(analyze_elf)

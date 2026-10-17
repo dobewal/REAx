@@ -32,7 +32,7 @@ def _analyze(path: str) -> dict:
 
 @app.command()
 def analyze(
-    path: str = typer.Argument(..., help="APK (more formats coming) to analyze"),
+    path: str = typer.Argument(..., help="APK or ELF binary to analyze"),
     out: str = typer.Option("reports", "--out", "-o", help="output directory"),
     fmt: str = typer.Option("all", "--format", "-f", help="json|md|html|all"),
     json_out: bool = typer.Option(False, "--json", help="also print evidence JSON path"),
@@ -80,7 +80,10 @@ def diff(
     def load(p: str):
         return evmod.load_evidence(p) if p.endswith(".reax.json") else _analyze(p)
 
-    d = diff_apk(load(old), load(new))
+    old_ev, new_ev = load(old), load(new)
+    if old_ev["target"]["kind"] != "apk" or new_ev["target"]["kind"] != "apk":
+        raise typer.BadParameter("diff currently supports APK evidence only")
+    d = diff_apk(old_ev, new_ev)
     console.print()
     console.print(render_markdown(d))
 

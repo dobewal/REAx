@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "reax"
-version = "0.1.0"
+version = "0.2.0"
 description = "Reverse Engineer Anything — improved. One command, zero setup, answers instead of primitives."
 readme = "README.md"
 license = { text = "MIT" }
@@ -35,6 +35,7 @@ dependencies = [
     "typer>=0.9",
     "rich>=13",
     "androguard>=4.0",
+    "pyelftools>=0.30",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",

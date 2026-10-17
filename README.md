@@ -47,6 +47,9 @@ pip install reax
 # full analysis → JSON + Markdown + single-file HTML report
 reax analyze app.apk -o reports/
 
+# X-ray a native binary or .so library
+reax analyze lib/arm64-v8a/libnative.so -o reports/
+
 # what changed between two versions?
 reax diff app-v1.apk app-v2.apk
 
@@ -65,6 +68,7 @@ reax doctor
 | 🌐 **Network indicators** | URLs and IPs pulled from DEX strings |
 | 📦 **Hidden payloads** | native `.so` files enumerated from the real package (with sizes), big blobs in `assets/` flagged |
 | 🔍 **Version diff** | new permissions, new trackers, new libs, risk delta between two APKs |
+| ⚙️ **ELF X-ray** | suspicious imports, RWX segments, section entropy, packer signatures for native binaries |
 | 📄 **Shareable report** | one self-contained HTML file — send it to anyone, no tool needed |
 
 ## REAX vs REA
@@ -95,11 +99,11 @@ drop it into any agent that speaks the open Agent Skills format.
 
 ## Roadmap
 
-- [ ] ELF / Mach-O / PE analyzers (native binaries)
+- [x] ELF / Mach-O / PE analyzers (native binaries) — **ELF done in v0.2.0**
 - [ ] DEX → Java decompile view for flagged methods
 - [ ] `reax serve` — local web UI for reports
 - [ ] PyPI release + single-binary builds
-- [ ] iOS IPA support
+- [ ] iOS IPA support, Mach-O and PE binaries
 
 ## Contributing
 
