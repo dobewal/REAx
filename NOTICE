@@ -1,0 +1,18 @@
+# NOTICE — attribution
+
+REAX is an independent implementation. It is not affiliated with,
+endorsed by, or a copy of the projects below.
+
+- **REA** (https://github.com/morluto/rea) © 2026 morluto, MIT licensed.
+  REAX was inspired by REA's goal of making reverse engineering accessible
+  to agents and humans. No REA source code is included in this repository.
+
+- **Androguard** (https://github.com/androguard/androguard),
+  Apache-2.0 licensed, used at runtime via pip (not vendored).
+
+- **Typer** (https://github.com/fastapi/typer) and **Rich**
+  (https://github.com/Textualize/rich), both MIT licensed,
+  used at runtime via pip (not vendored).
+
+- **FastMCP** (https://github.com/jlowin/fastmcp), Apache-2.0 licensed,
+  optional dependency for the MCP server (not vendored).
